@@ -11,7 +11,10 @@ import re
 import sys
 import threading
 import traceback
+import numpy as np
+from .core import *
 from torch._six import string_classes, int_classes
+
 
 if sys.version_info[0] == 2:
     import Queue as queue
@@ -154,6 +157,19 @@ def pin_memory_batch(batch):
         return batch
 
 
+def get_tensor(batch, pin):
+    if isinstance(batch, (np.ndarray, np.generic)):
+        batch = T(batch).contiguous()
+        return batch.pin_memory() if pin else batch
+    elif isinstance(batch, string_classes): return batch
+    elif isinstance(batch, collections.Mapping):
+        return {k: get_tensor(sample, pin) for k, sample in batch.items()}
+    elif isinstance(batch, collections.Sequence):
+        return [get_tensor(sample, pin) for sample in batch]
+    raise TypeError("batch must contain numbers, dicts or lists; found {}"
+                     .format(type(batch)))
+
+
 _SIGCHLD_handler_set = False
 r"""Whether SIGCHLD handler is set for DataLoader worker failures. Only one
 handler needs to be set for all DataLoaders in a process."""
@@ -258,13 +274,14 @@ class _DataLoaderIter(object):
         else:
             return self.data_queue.get()
 
+
     def __next__(self):
         if self.num_workers == 0:  # same-process loading
             indices = next(self.sample_iter)  # may raise StopIteration
             batch = self.collate_fn([self.dataset[i] for i in indices], pad_idx = self.pad_idx)
             if self.pin_memory:
                 batch = pin_memory_batch(batch)
-            return batch
+            return get_tensor(batch, self.pin_memory)
 
         # check if the next sample has already been generated
         if self.rcvd_idx in self.reorder_dict:
@@ -304,7 +321,7 @@ class _DataLoaderIter(object):
         self._put_indices()
         if isinstance(batch, ExceptionWrapper):
             raise batch.exc_type(batch.exc_msg)
-        return batch
+        return get_tensor(batch, self.pin_memory)
 
     def __getstate__(self):
         # TODO: add limited pickling support for sharing an iterator
