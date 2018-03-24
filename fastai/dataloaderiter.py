@@ -13,6 +13,8 @@ import threading
 import traceback
 from torch._six import string_classes, int_classes
 
+from fastai.dataloader import get_tensor
+
 if sys.version_info[0] == 2:
     import Queue as queue
 else:
@@ -258,13 +260,14 @@ class _DataLoaderIter(object):
         else:
             return self.data_queue.get()
 
+
     def __next__(self):
         if self.num_workers == 0:  # same-process loading
             indices = next(self.sample_iter)  # may raise StopIteration
             batch = self.collate_fn([self.dataset[i] for i in indices], pad_idx = self.pad_idx)
             if self.pin_memory:
                 batch = pin_memory_batch(batch)
-            return batch
+            return get_tensor(batch, self.pin_memory)
 
         # check if the next sample has already been generated
         if self.rcvd_idx in self.reorder_dict:
@@ -304,7 +307,7 @@ class _DataLoaderIter(object):
         self._put_indices()
         if isinstance(batch, ExceptionWrapper):
             raise batch.exc_type(batch.exc_msg)
-        return batch
+        return get_tensor(batch, self.pin_memory)
 
     def __getstate__(self):
         # TODO: add limited pickling support for sharing an iterator
