@@ -150,7 +150,11 @@ def predict_with_targs_(m, dl):
 
 def predict_with_targs(m, dl):
     preda,targa = predict_with_targs_(m, dl)
-    return to_np(torch.cat(preda)), to_np(torch.cat(targa))
+    #preda = preda.cuda()
+    #targa = targa.cuda()
+    #preda_cat = torch.cat(preda)
+    #targa_cat = torch.cat(targa)
+    return to_np(preda), to_np(targa)
 
 # From https://github.com/ncullen93/torchsample
 def model_summary(m, input_size):

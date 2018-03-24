@@ -1,6 +1,6 @@
 from .imports import *
 from .torch_imports import *
-
+import numpy as np
 def sum_geom(a,r,n): return a*n if r==1 else math.ceil(a*(1-r**n)/(1-r))
 
 conv_dict = {np.dtype('int8'): torch.LongTensor, np.dtype('int16'): torch.LongTensor,
@@ -36,6 +36,7 @@ def VV_(x): return create_variable(x, True)
 def VV(x):  return [VV_(o) for o in x] if isinstance(x,list) else VV_(x)
 
 def to_np(v):
+    if isinstance(v, np.ndarray): return v
     if isinstance(v, (list,tuple)): return [to_np(o) for o in v]
     if isinstance(v, Variable): v=v.data
     return v.cpu().numpy()
