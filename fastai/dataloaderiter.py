@@ -11,9 +11,10 @@ import re
 import sys
 import threading
 import traceback
+import numpy as np
+from .core import *
 from torch._six import string_classes, int_classes
 
-from fastai.dataloader import get_tensor
 
 if sys.version_info[0] == 2:
     import Queue as queue
@@ -154,6 +155,19 @@ def pin_memory_batch(batch):
         return [pin_memory_batch(sample) for sample in batch]
     else:
         return batch
+
+
+def get_tensor(batch, pin):
+    if isinstance(batch, (np.ndarray, np.generic)):
+        batch = T(batch).contiguous()
+        return batch.pin_memory() if pin else batch
+    elif isinstance(batch, string_classes): return batch
+    elif isinstance(batch, collections.Mapping):
+        return {k: get_tensor(sample, pin) for k, sample in batch.items()}
+    elif isinstance(batch, collections.Sequence):
+        return [get_tensor(sample, pin) for sample in batch]
+    raise TypeError("batch must contain numbers, dicts or lists; found {}"
+                     .format(type(batch)))
 
 
 _SIGCHLD_handler_set = False
