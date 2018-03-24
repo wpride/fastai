@@ -27,19 +27,6 @@ def np_collate(batch, pad_idx):
     raise TypeError(("batch must contain numbers, dicts or lists; found {}".format(type(b))))
 
 
-def get_tensor(batch, pin):
-    if isinstance(batch, (np.ndarray, np.generic)):
-        batch = T(batch).contiguous()
-        return batch.pin_memory() if pin else batch
-    elif isinstance(batch, string_classes): return batch
-    elif isinstance(batch, collections.Mapping):
-        return {k: get_tensor(sample, pin) for k, sample in batch.items()}
-    elif isinstance(batch, collections.Sequence):
-        return [get_tensor(sample, pin) for sample in batch]
-    raise TypeError("batch must contain numbers, dicts or lists; found {}"
-                     .format(type(batch)))
-
-
 class DataLoader(object):
     def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, pad_idx=0,
                  num_workers=None, collate_fn=np_collate, pin_memory=False, drop_last=False, transpose=False):
