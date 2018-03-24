@@ -3,12 +3,10 @@ from .torch_imports import *
 
 def accuracy_np(preds, targs):
     preds = np.argmax(preds, 1)
-    targs = torch.from_numpy(targs)
     return (preds==targs).mean()
 
 def accuracy(preds, targs):
     preds = torch.max(preds, dim=1)[1]
-    targs = torch.from_numpy(targs).cuda()
     return (preds==targs).float().mean()
 
 def accuracy_thresh(thresh):
